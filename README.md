@@ -2,7 +2,7 @@
 
 An interactive visualizer for three classic pathfinding algorithms: **breadth-first search (BFS)**, **depth-first search (DFS)** and **A\***. Draw a maze, pick an algorithm, and watch it search for the goal.
 
-The whole project is one file, `pathfinding-lab.html`, with plain HTML, CSS and JavaScript. There are no dependencies and no build step.
+The whole project is one file, `index.html`, with plain HTML, CSS and JavaScript. There are no dependencies and no build step.
 
 ## Features
 
@@ -16,7 +16,7 @@ The whole project is one file, `pathfinding-lab.html`, with plain HTML, CSS and 
 
 ## Getting started
 
-Download `pathfinding-lab.html` and open it in any current browser.
+Download `index.html` and open it in any current browser.
 
 ## Using it
 
