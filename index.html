@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pathfinding Lab — BFS, DFS &amp; A*</title>
+<style>
+:root{--bg:#f2f2f2;--tx:#0a0a0a;--mut:#666;--glass:rgba(255,255,255,.7);--bd:rgba(0,0,0,.12);--cell:rgba(0,0,0,.05);--cellbd:rgba(0,0,0,.07);--wall:#0a0a0a;--vis:#8c8c8c;--fr:#d0d0d0;--path:#1f9d6b;--start:#1f9d6b;--goal:#e5484d;--pri:#0a0a0a;--pri-tx:#fff;--ease-out:cubic-bezier(0.23,1,0.32,1);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0a0a;--tx:#fafafa;--mut:#a3a3a3;--glass:rgba(255,255,255,.06);--bd:rgba(255,255,255,.14);--cell:rgba(255,255,255,.05);--cellbd:rgba(255,255,255,.07);--wall:#f2f2f2;--vis:#767676;--fr:#3f3f3f;--pri:#fafafa;--pri-tx:#0a0a0a}}
+:root[data-theme="dark"]{--bg:#0a0a0a;--tx:#fafafa;--mut:#a3a3a3;--glass:rgba(255,255,255,.06);--bd:rgba(255,255,255,.14);--cell:rgba(255,255,255,.05);--cellbd:rgba(255,255,255,.07);--wall:#f2f2f2;--vis:#767676;--fr:#3f3f3f;--pri:#fafafa;--pri-tx:#0a0a0a}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--tx);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+main{max-width:1000px;margin:0 auto;padding:22px 16px 40px}
+.glass{background:var(--glass);border:1px solid var(--bd);border-radius:20px;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%)}
+h1{margin:0;font-size:clamp(24px,4vw,34px);letter-spacing:-.02em}
+h1 span{font-weight:400;color:var(--mut)}
+.sub{color:var(--mut);margin:6px 0 18px;font-size:14px}
+.algos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.card{padding:14px 16px;cursor:pointer;text-align:left;color:inherit;font:inherit;transition:transform 160ms var(--ease-out),border-color 160ms ease,box-shadow 160ms ease}
+.card:active{transform:scale(.98)}
+.card.on{border-color:var(--tx);box-shadow:0 0 0 1px var(--tx)}
+.card b{font-size:17px;display:block}
+.card small{display:block;color:var(--mut);margin:3px 0 10px;font-size:12px;line-height:1.35;min-height:32px}
+.stat{display:flex;gap:14px;font-size:12px;color:var(--mut)}
+.stat em{font-style:normal;color:var(--tx);font-weight:700;font-size:15px;margin-left:4px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 14px;margin-bottom:14px}
+button.b{border:1px solid var(--bd);background:transparent;color:var(--tx);padding:9px 14px;border-radius:12px;font:600 13px inherit;font-family:inherit;cursor:pointer;transition:transform 140ms var(--ease-out),background-color 140ms ease}
+button.b:active{transform:scale(.97)}
+button.b.p{background:var(--pri);color:var(--pri-tx);border-color:var(--pri)}
+button:focus-visible{outline:2px solid var(--tx);outline-offset:2px}
+@media (hover:hover) and (pointer:fine){.card:hover,button.b:hover{transform:translateY(-1px)}.card:active,button.b:active{transform:scale(.97)}}
+.sp{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--mut)}
+input[type=range]{accent-color:var(--tx);width:120px}
+#grid{display:grid;grid-template-columns:repeat(32,1fr);gap:2px;padding:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.cell{aspect-ratio:1;border-radius:4px;background:var(--cell);border:1px solid var(--cellbd)}
+.cell.wall{background:var(--wall);border-color:transparent}
+.cell.fr{background:var(--fr);animation:fadeIn 200ms ease-out}
+.cell.vis{background:var(--vis);border-color:transparent;animation:pop 280ms var(--ease-out)}
+.cell.path{background:var(--path);border-color:transparent;animation:pop 240ms var(--ease-out)}
+.cell.start,.cell.goal{border-radius:50%;border-color:transparent}
+.cell.start{background:var(--start)}
+.cell.goal{background:var(--goal)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fadeIn{from{opacity:0}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:12px 16px;margin-top:14px;font-size:12px;color:var(--mut);align-items:center}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+#msg{margin-left:auto;color:var(--tx);font-weight:600}
+@media (max-width:640px){.algos{grid-template-columns:1fr}.card small{min-height:0}.sp{margin-left:0;width:100%}#grid{gap:1px;padding:6px}.cell{border-radius:2px}}
+@media (prefers-reduced-motion:reduce){.cell.vis,.cell.path,.cell.fr{animation:fadeIn 200ms ease}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Pathfinding <span>Lab</span></h1>
+  <p class="sub">Draw walls, then watch three algorithms hunt for the goal. Drag to paint walls · drag the green / red dots to move them · click a wall to erase.</p>
+
+  <div class="algos" id="algos"></div>
+
+  <div class="bar glass">
+    <button class="b p" id="run">▶ Run</button>
+    <button class="b" id="clr">Clear path</button>
+    <button class="b" id="maze">Random walls</button>
+    <button class="b" id="rst">Reset</button>
+    <label class="sp">Speed <input type="range" id="speed" min="1" max="60" value="35"></label>
+  </div>
+
+  <div class="glass"><div id="grid"></div></div>
+
+  <div class="legend glass">
+    <span><i style="background:var(--start)"></i>Start</span>
+    <span><i style="background:var(--goal)"></i>Goal</span>
+    <span><i style="background:var(--wall)"></i>Wall</span>
+    <span><i style="background:var(--fr)"></i>Frontier</span>
+    <span><i style="background:var(--vis)"></i>Visited</span>
+    <span><i style="background:var(--path)"></i>Path</span>
+    <span id="msg" aria-live="polite">Pick an algorithm and press Run</span>
+  </div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const C = 32, R = 18, N = C * R;
+let start = 9 * C + 4, goal = 9 * C + 27, walls = new Set(), busy = false, run = 0, algo = 'bfs', drag = null;
+const INFO = {
+  bfs: ['BFS', 'Explores layer by layer. Always finds the shortest path.'],
+  dfs: ['DFS', 'Dives deep before backtracking. Fast to code, rarely shortest.'],
+  astar: ['A*', 'Uses distance-to-goal as a hint. Shortest path, far fewer steps.']
+};
+const results = {};
+const gridEl = $('#grid'), cells = [];
+for (let i = 0; i < N; i++) { const d = document.createElement('div'); d.className = 'cell'; d.dataset.k = i; gridEl.appendChild(d); cells.push(d); }
+
+function paint() {
+  cells.forEach((d, i) => d.className = 'cell' + (walls.has(i) ? ' wall' : '') + (i === start ? ' start' : '') + (i === goal ? ' goal' : ''));
+}
+function clearPath() { cells.forEach(d => d.classList.remove('vis', 'fr', 'path')); }
+
+function renderCards() {
+  $('#algos').innerHTML = Object.entries(INFO).map(([k, [n, t]]) => {
+    const r = results[k];
+    return `<button class="card glass ${k === algo ? 'on' : ''}" data-a="${k}"><b>${n}</b><small>${t}</small>
+      <div class="stat"><span>Visited<em>${r ? r.vis : '–'}</em></span><span>Path<em>${r ? (r.len < 0 ? 'none' : r.len) : '–'}</em></span></div></button>`;
+  }).join('');
+}
+function invalidate() { for (const k in results) delete results[k]; renderCards(); }
+$('#algos').addEventListener('click', e => {
+  const c = e.target.closest('.card'); if (!c || busy) return;
+  algo = c.dataset.a; renderCards();
+});
+
+const nbrs = k => {
+  const r = k / C | 0, c = k % C, o = [];
+  if (r > 0) o.push(k - C);
+  if (c < C - 1) o.push(k + 1);
+  if (r < R - 1) o.push(k + C);
+  if (c > 0) o.push(k - 1);
+  return o.filter(n => !walls.has(n));
+};
+const h = k => Math.abs((k / C | 0) - (goal / C | 0)) + Math.abs(k % C - goal % C);
+
+// Each solver returns events [type, node]: type 0 = added to frontier, 1 = visited
+function solve(a) {
+  const ev = [], par = new Map([[start, -1]]); let found = false;
+  if (a === 'bfs') {
+    const q = [start], seen = new Set([start]); let i = 0;
+    while (i < q.length) {
+      const k = q[i++]; ev.push([1, k]);
+      if (k === goal) { found = true; break; }
+      for (const n of nbrs(k)) if (!seen.has(n)) { seen.add(n); par.set(n, k); q.push(n); ev.push([0, n]); }
+    }
+  } else if (a === 'dfs') {
+    const s = [[start, -1]], seen = new Set();
+    while (s.length) {
+      const [k, p] = s.pop(); if (seen.has(k)) continue;
+      seen.add(k); par.set(k, p); ev.push([1, k]);
+      if (k === goal) { found = true; break; }
+      for (const n of nbrs(k).reverse()) if (!seen.has(n)) { s.push([n, k]); ev.push([0, n]); }
+    }
+  } else {
+    const g = new Map([[start, 0]]), open = [start], closed = new Set();
+    while (open.length) {
+      let bi = 0;
+      for (let i = 1; i < open.length; i++) {
+        const f1 = g.get(open[i]) + h(open[i]), f2 = g.get(open[bi]) + h(open[bi]);
+        if (f1 < f2 || (f1 === f2 && h(open[i]) < h(open[bi]))) bi = i;
+      }
+      const k = open.splice(bi, 1)[0]; if (closed.has(k)) continue;
+      closed.add(k); ev.push([1, k]);
+      if (k === goal) { found = true; break; }
+      for (const n of nbrs(k)) {
+        const t = g.get(k) + 1;
+        if (!g.has(n) || t < g.get(n)) { g.set(n, t); par.set(n, k); open.push(n); ev.push([0, n]); }
+      }
+    }
+  }
+  const path = [];
+  if (found) for (let k = goal; k !== -1; k = par.get(k)) path.push(k);
+  return { ev, path: path.reverse(), found };
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function go() {
+  if (busy) return;
+  clearPath(); busy = true; const id = ++run;
+  const { ev, path, found } = solve(algo);
+  const v = +$('#speed').value, d = 64 - v, b = v > 40 ? 3 : 1;
+  let vis = 0; $('#msg').textContent = 'Searching…';
+  for (let i = 0; i < ev.length; i++) {
+    if (id !== run) return;
+    const [t, k] = ev[i], cl = cells[k].classList;
+    if (t) { vis++; if (k !== start && k !== goal) { cl.remove('fr'); cl.add('vis'); } }
+    else if (!cl.contains('vis') && k !== goal) cl.add('fr');
+    if (i % b === 0) await sleep(d);
+  }
+  if (found) for (const k of path) { if (id !== run) return; if (k !== start && k !== goal) cells[k].classList.add('path'); await sleep(22); }
+  results[algo] = { vis, len: found ? path.length - 1 : -1 };
+  $('#msg').textContent = found ? `${INFO[algo][0]}: path of ${path.length - 1} steps, ${vis} cells visited` : 'No path — the goal is walled off!';
+  busy = false; renderCards();
+}
+
+function stop() { run++; busy = false; clearPath(); }
+$('#run').onclick = go;
+$('#clr').onclick = () => { stop(); $('#msg').textContent = 'Path cleared'; };
+$('#rst').onclick = () => { stop(); walls.clear(); start = 9 * C + 4; goal = 9 * C + 27; invalidate(); paint(); $('#msg').textContent = 'Board reset'; };
+$('#maze').onclick = () => {
+  stop(); walls.clear(); invalidate();
+  for (let i = 0; i < N; i++) if (i !== start && i !== goal && Math.random() < .28) walls.add(i);
+  paint(); $('#msg').textContent = 'Random walls added';
+};
+
+const keyAt = e => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && el.dataset && el.dataset.k !== undefined ? +el.dataset.k : -1; };
+function apply(k) {
+  if (drag === 's') { if (k !== goal && !walls.has(k)) start = k; }
+  else if (drag === 'g') { if (k !== start && !walls.has(k)) goal = k; }
+  else if (k !== start && k !== goal) { drag === 'w' ? walls.add(k) : walls.delete(k); }
+  paint();
+}
+gridEl.addEventListener('pointerdown', e => {
+  if (busy) return; const k = keyAt(e); if (k < 0) return;
+  e.preventDefault(); clearPath(); invalidate();
+  drag = k === start ? 's' : k === goal ? 'g' : walls.has(k) ? 'e' : 'w'; apply(k);
+});
+addEventListener('pointermove', e => { if (!drag) return; const k = keyAt(e); if (k >= 0) apply(k); });
+addEventListener('pointerup', () => drag = null);
+addEventListener('pointercancel', () => drag = null);
+
+paint(); renderCards();
+</script>
+</body>
+</html>
